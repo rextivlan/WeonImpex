@@ -14,6 +14,7 @@ const ProfileScreen = ({ location, history }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [message, setMessage] = useState(null);
 
   const dispatch = useDispatch();
@@ -41,6 +42,7 @@ const ProfileScreen = ({ location, history }) => {
       } else {
         setName(user.name);
         setEmail(user.email);
+        setPhone(user.phone);
       }
     }
   }, [dispatch, history, userInfo, user, success]);
@@ -50,7 +52,9 @@ const ProfileScreen = ({ location, history }) => {
     if (password !== confirmPassword) {
       setMessage("Passwords do not match");
     } else {
-      dispatch(updateUserProfile({ id: user._id, name, email, password }));
+      dispatch(
+        updateUserProfile({ id: user._id, name, email, password, phone })
+      );
     }
   };
 
@@ -74,6 +78,16 @@ const ProfileScreen = ({ location, history }) => {
                 placeholder="Enter Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+              ></Form.Control>
+            </Form.Group>
+
+            <Form.Group controlId="phone">
+              <Form.Label>Phone Number</Form.Label>
+              <Form.Control
+                type="name"
+                placeholder="Enter Phone Number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
               ></Form.Control>
             </Form.Group>
 
