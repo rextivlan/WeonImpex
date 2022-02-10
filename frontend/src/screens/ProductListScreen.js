@@ -11,6 +11,7 @@ import {
   createProduct,
 } from "../actions/productActions";
 import { PRODUCT_CREATE_RESET } from "../constants/productConstants";
+import { BiRupee } from "react-icons/bi";
 
 const ProductListScreen = ({ history, match }) => {
   const pageNumber = match.params.pageNumber || 1;
@@ -108,7 +109,10 @@ const ProductListScreen = ({ history, match }) => {
                 <tr key={product._id}>
                   <td>{product._id}</td>
                   <td>{product.name}</td>
-                  <td>${product.price}</td>
+                  <td>
+                    <BiRupee />
+                    {product.price}
+                  </td>
                   <td>{product.category}</td>
                   <td>{product.brand}</td>
                   <td>
