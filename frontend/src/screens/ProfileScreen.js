@@ -121,7 +121,7 @@ const ProfileScreen = ({ location, history }) => {
               ></Form.Control>
             </Form.Group>
 
-            <Button type="submit" variant="primary" className="py-3">
+            <Button type="submit" variant="primary" className="py-3 w-100">
               Update
             </Button>
           </Form>
