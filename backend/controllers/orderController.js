@@ -49,6 +49,10 @@ const addOrderItems = asyncHandler(async (req, res) => {
     } catch (err) {
       console.log(err);
     }
+    if (razorpayOrder.error) {
+      res.status(500);
+    }
+
     const order = new Order({
       orderItems,
       razorpay: razorpayOrder,
@@ -60,9 +64,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
       shippingPrice,
       totalPrice,
     });
-
     const createdOrder = await order.save();
-
     res.status(201).json(createdOrder);
   }
 });
