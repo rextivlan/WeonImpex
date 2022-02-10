@@ -14,6 +14,7 @@ const UserEditScreen = ({ match, history }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [phone, setPhone] = useState("");
 
   const dispatch = useDispatch();
 
@@ -37,6 +38,7 @@ const UserEditScreen = ({ match, history }) => {
       } else {
         setName(user.name);
         setEmail(user.email);
+        setPhone(user.phone);
         setIsAdmin(user.isAdmin);
       }
     }
@@ -44,7 +46,7 @@ const UserEditScreen = ({ match, history }) => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-    dispatch(updateUser({ _id: userId, name, email, isAdmin }));
+    dispatch(updateUser({ _id: userId, name, email, isAdmin, phone }));
   };
 
   return (
@@ -72,6 +74,16 @@ const UserEditScreen = ({ match, history }) => {
               ></Form.Control>
             </Form.Group>
 
+            <Form.Group controlId="phone" className="py-3">
+              <Form.Label>Phone Number</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Enter Phone Number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              ></Form.Control>
+            </Form.Group>
+
             <Form.Group controlId="email" className="py-3">
               <Form.Label>Email Address</Form.Label>
               <Form.Control
@@ -91,7 +103,7 @@ const UserEditScreen = ({ match, history }) => {
               ></Form.Check>
             </Form.Group>
 
-            <Button type="submit" variant="primary" className="py-3">
+            <Button type="submit" variant="primary" className="py-3 w-100">
               Update
             </Button>
           </Form>
