@@ -1,13 +1,16 @@
 import asyncHandler from "express-async-handler";
 import Order from "../models/orderModel.js";
+import Razorpay from "razorpay";
 import Product from "../models/productModel.js";
+import shortid from "shortid";
+
+const addDecimals = (num) => {
+  return (Math.round(num * 100) / 100).toFixed(2);
+};
 
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
-const addDecimals = (num) => {
-  return (Math.round(num * 100) / 100).toFixed(2);
-};
 const addOrderItems = asyncHandler(async (req, res) => {
   const { orderItems, shippingAddress, paymentMethod } = req.body;
 
@@ -28,8 +31,27 @@ const addOrderItems = asyncHandler(async (req, res) => {
     let totalPrice =
       Number(taxPrice) + Number(itemsPrice) + Number(shippingPrice);
 
+    const instance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_SECRET,
+    });
+
+    let options = {
+      amount: totalPrice * 100,
+      currency: "INR",
+      receipt: shortid.generate(),
+    };
+
+    let razorpayOrder;
+    try {
+      razorpayOrder = await instance.orders.create(options);
+      console.log(razorpayOrder);
+    } catch (err) {
+      console.log(err);
+    }
     const order = new Order({
       orderItems,
+      razorpay: razorpayOrder,
       user: req.user._id,
       shippingAddress,
       paymentMethod,
