@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { PayPalButton } from "react-paypal-button-v2";
 import { Link } from "react-router-dom";
 import { Row, Col, ListGroup, Image, Card, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
+
 import Message from "../components/Message";
 import Loader from "../components/Loader";
 import {
@@ -14,13 +13,13 @@ import {
 import {
   ORDER_PAY_RESET,
   ORDER_DELIVER_RESET,
+  ORDER_PAY_SUCCESS,
 } from "../constants/orderConstants";
 import { BiRupee } from "react-icons/bi";
+import logo from "../assets/logo.svg";
 
 const OrderScreen = ({ match, history }) => {
   const orderId = match.params.id;
-
-  const [sdkReady, setSdkReady] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -52,38 +51,79 @@ const OrderScreen = ({ match, history }) => {
       history.push("/login");
     }
 
-    const addPayPalScript = async () => {
-      const { data: clientId } = await axios.get("/api/config/paypal");
-      const script = document.createElement("script");
-      script.type = "text/javascript";
-      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}`;
-      script.async = true;
-      script.onload = () => {
-        setSdkReady(true);
-      };
-      document.body.appendChild(script);
-    };
-
     if (!order || successPay || successDeliver || order._id !== orderId) {
       dispatch({ type: ORDER_PAY_RESET });
       dispatch({ type: ORDER_DELIVER_RESET });
       dispatch(getOrderDetails(orderId));
-    } else if (!order.isPaid) {
-      if (!window.paypal) {
-        addPayPalScript();
-      } else {
-        setSdkReady(true);
-      }
     }
   }, [dispatch, history, userInfo, orderId, successPay, successDeliver, order]);
 
   const successPaymentHandler = (paymentResult) => {
-    console.log(paymentResult);
     dispatch(payOrder(orderId, paymentResult));
   };
 
   const deliverHandler = () => {
     dispatch(deliverOrder(order));
+  };
+
+  const loadScript = (src) => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = () => {
+        resolve(true);
+      };
+      script.onerror = () => {
+        resolve(false);
+      };
+      document.body.appendChild(script);
+    });
+  };
+
+  const displayRazorpay = async () => {
+    const res = await loadScript(
+      "https://checkout.razorpay.com/v1/checkout.js"
+    );
+
+    if (!res) {
+      console.log("Razorpay SDK failed to load. Are you online?");
+      return;
+    }
+
+    const { razorpay, _id } = order;
+    const options = {
+      key: "rzp_test_Zl2MIFiMb6cCD0",
+      amount: razorpay.amount.toString(),
+      currency: "INR",
+      name: "Weon Impex Pvt Ltd",
+      description: "Online Purchase",
+      image: { logo },
+      order_id: razorpay.id,
+      handler: async function (response) {
+        const data = {
+          orderCreationId: razorpay.id,
+          razorpayPaymentId: response.razorpay_payment_id,
+          razorpayOrderId: response.razorpay_order_id,
+          razorpaySignature: response.razorpay_signature,
+        };
+
+        dispatch(payOrder(_id, data));
+      },
+      prefill: {
+        name: userInfo.name,
+        email: userInfo.email,
+        contact: userInfo.phone,
+      },
+      notes: {
+        address: "Weon Impex Pvt Ltd",
+      },
+      theme: {
+        color: "#000",
+      },
+    };
+
+    const paymentObject = new window.Razorpay(options);
+    paymentObject.open();
   };
 
   return loading ? (
@@ -213,14 +253,16 @@ const OrderScreen = ({ match, history }) => {
               {!order.isPaid && (
                 <ListGroup.Item>
                   {loadingPay && <Loader />}
-                  {!sdkReady ? (
-                    <Loader />
-                  ) : (
-                    <PayPalButton
-                      amount={order.totalPrice}
-                      onSuccess={successPaymentHandler}
-                    />
-                  )}
+
+                  <Button
+                    className="btn w-100"
+                    type="button"
+                    onClick={() => {
+                      displayRazorpay();
+                    }}
+                  >
+                    Proceed to Pay
+                  </Button>
                 </ListGroup.Item>
               )}
               {loadingDeliver && <Loader />}

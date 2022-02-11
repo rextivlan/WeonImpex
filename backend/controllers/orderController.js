@@ -1,13 +1,16 @@
 import asyncHandler from "express-async-handler";
 import Order from "../models/orderModel.js";
+import Razorpay from "razorpay";
 import Product from "../models/productModel.js";
+import shortid from "shortid";
+import crypto from "crypto";
+const addDecimals = (num) => {
+  return (Math.round(num * 100) / 100).toFixed(2);
+};
 
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
-const addDecimals = (num) => {
-  return (Math.round(num * 100) / 100).toFixed(2);
-};
 const addOrderItems = asyncHandler(async (req, res) => {
   const { orderItems, shippingAddress, paymentMethod } = req.body;
 
@@ -28,8 +31,30 @@ const addOrderItems = asyncHandler(async (req, res) => {
     let totalPrice =
       Number(taxPrice) + Number(itemsPrice) + Number(shippingPrice);
 
+    const instance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_SECRET,
+    });
+
+    let options = {
+      amount: totalPrice * 100,
+      currency: "INR",
+      receipt: shortid.generate(),
+    };
+
+    let razorpayOrder;
+    try {
+      razorpayOrder = await instance.orders.create(options);
+    } catch (err) {
+      console.log(err);
+    }
+    if (razorpayOrder.error) {
+      res.status(500);
+    }
+
     const order = new Order({
       orderItems,
+      razorpay: razorpayOrder,
       user: req.user._id,
       shippingAddress,
       paymentMethod,
@@ -38,9 +63,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
       shippingPrice,
       totalPrice,
     });
-
     const createdOrder = await order.save();
-
     res.status(201).json(createdOrder);
   }
 });
@@ -63,27 +86,42 @@ const getOrderById = asyncHandler(async (req, res) => {
 });
 
 // @desc    Update order to paid
-// @route   GET /api/orders/:id/pay
+// @route   PUT /api/orders/:id/pay
 // @access  Private
 const updateOrderToPaid = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id);
 
-  if (order) {
+  try {
+    const {
+      orderCreationId,
+      razorpayPaymentId,
+      razorpayOrderId,
+      razorpaySignature,
+    } = req.body;
+
+    const shasum = crypto.createHmac("sha256", process.env.RAZORPAY_SECRET);
+
+    shasum.update(`${orderCreationId}|${razorpayPaymentId}`);
+
+    const digest = shasum.digest("hex");
+
+    if (digest !== razorpaySignature)
+      return res.status(400).json({ msg: "Transaction not legit!" });
+
     order.isPaid = true;
     order.paidAt = Date.now();
     order.paymentResult = {
-      id: req.body.id,
-      status: req.body.status,
-      update_time: req.body.update_time,
-      email_address: req.body.payer.email_address,
+      msg: "success",
+      orderId: razorpayOrderId,
+      paymentId: razorpayPaymentId,
     };
 
     const updatedOrder = await order.save();
 
     res.json(updatedOrder);
-  } else {
-    res.status(404);
-    throw new Error("Order not found");
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({ ...err });
   }
 });
 
