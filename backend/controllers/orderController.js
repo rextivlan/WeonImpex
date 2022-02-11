@@ -28,8 +28,9 @@ const addOrderItems = asyncHandler(async (req, res) => {
     let taxPrice = addDecimals(Number((0.15 * itemsPrice).toFixed(2)));
     itemsPrice -= taxPrice;
     let shippingPrice = addDecimals(itemsPrice > 3000 ? 0 : 150);
-    let totalPrice =
-      Number(taxPrice) + Number(itemsPrice) + Number(shippingPrice);
+    let totalPrice = Number(
+      Number(taxPrice) + Number(itemsPrice) + Number(shippingPrice)
+    ).toFixed(2);
 
     const instance = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,

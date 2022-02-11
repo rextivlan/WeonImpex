@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Row, Col, ListGroup, Image, Card, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
@@ -13,7 +13,6 @@ import {
 import {
   ORDER_PAY_RESET,
   ORDER_DELIVER_RESET,
-  ORDER_PAY_SUCCESS,
 } from "../constants/orderConstants";
 import { BiRupee } from "react-icons/bi";
 import logo from "../assets/logo.svg";
@@ -58,8 +57,8 @@ const OrderScreen = ({ match, history }) => {
     }
   }, [dispatch, history, userInfo, orderId, successPay, successDeliver, order]);
 
-  const successPaymentHandler = (paymentResult) => {
-    dispatch(payOrder(orderId, paymentResult));
+  const successPaymentHandler = (_id, paymentResult) => {
+    dispatch(payOrder(_id, paymentResult));
   };
 
   const deliverHandler = () => {
@@ -107,7 +106,7 @@ const OrderScreen = ({ match, history }) => {
           razorpaySignature: response.razorpay_signature,
         };
 
-        dispatch(payOrder(_id, data));
+        successPaymentHandler(_id, data);
       },
       prefill: {
         name: userInfo.name,
@@ -273,7 +272,7 @@ const OrderScreen = ({ match, history }) => {
                   <ListGroup.Item>
                     <Button
                       type="button"
-                      className="btn btn-block"
+                      className="btn w-100"
                       onClick={deliverHandler}
                     >
                       Mark As Delivered
