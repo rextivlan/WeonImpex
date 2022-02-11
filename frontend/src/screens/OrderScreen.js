@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
 import { Row, Col, ListGroup, Image, Card, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
+
 import Message from "../components/Message";
 import Loader from "../components/Loader";
 import {
@@ -13,13 +13,13 @@ import {
 import {
   ORDER_PAY_RESET,
   ORDER_DELIVER_RESET,
+  ORDER_PAY_SUCCESS,
 } from "../constants/orderConstants";
 import { BiRupee } from "react-icons/bi";
+import logo from "../assets/logo.svg";
 
 const OrderScreen = ({ match, history }) => {
   const orderId = match.params.id;
-
-  const [sdkReady, setSdkReady] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -55,8 +55,6 @@ const OrderScreen = ({ match, history }) => {
       dispatch({ type: ORDER_PAY_RESET });
       dispatch({ type: ORDER_DELIVER_RESET });
       dispatch(getOrderDetails(orderId));
-    } else if (!order.isPaid) {
-      // add razorpay button
     }
   }, [dispatch, history, userInfo, orderId, successPay, successDeliver, order]);
 
@@ -67,6 +65,66 @@ const OrderScreen = ({ match, history }) => {
 
   const deliverHandler = () => {
     dispatch(deliverOrder(order));
+  };
+
+  const loadScript = (src) => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = () => {
+        resolve(true);
+      };
+      script.onerror = () => {
+        resolve(false);
+      };
+      document.body.appendChild(script);
+    });
+  };
+
+  const displayRazorpay = async () => {
+    const res = await loadScript(
+      "https://checkout.razorpay.com/v1/checkout.js"
+    );
+
+    if (!res) {
+      console.log("Razorpay SDK failed to load. Are you online?");
+      return;
+    }
+
+    const { razorpay, _id } = order;
+    const options = {
+      key: "rzp_test_Zl2MIFiMb6cCD0",
+      amount: razorpay.amount.toString(),
+      currency: "INR",
+      name: "Weon Impex Pvt Ltd",
+      description: "Online Purchase",
+      image: { logo },
+      order_id: razorpay.id,
+      handler: async function (response) {
+        const data = {
+          orderCreationId: razorpay.id,
+          razorpayPaymentId: response.razorpay_payment_id,
+          razorpayOrderId: response.razorpay_order_id,
+          razorpaySignature: response.razorpay_signature,
+        };
+
+        dispatch(payOrder(_id, data));
+      },
+      prefill: {
+        name: userInfo.name,
+        email: userInfo.email,
+        contact: userInfo.phone,
+      },
+      notes: {
+        address: "Weon Impex Pvt Ltd",
+      },
+      theme: {
+        color: "#000",
+      },
+    };
+
+    const paymentObject = new window.Razorpay(options);
+    paymentObject.open();
   };
 
   return loading ? (
@@ -196,13 +254,16 @@ const OrderScreen = ({ match, history }) => {
               {!order.isPaid && (
                 <ListGroup.Item>
                   {loadingPay && <Loader />}
-                  {!sdkReady ? (
-                    <Loader />
-                  ) : (
-                    {
-                      /* add razorpay button */
-                    }
-                  )}
+
+                  <Button
+                    className="btn w-100"
+                    type="button"
+                    onClick={() => {
+                      displayRazorpay();
+                    }}
+                  >
+                    Proceed to Pay
+                  </Button>
                 </ListGroup.Item>
               )}
               {loadingDeliver && <Loader />}
