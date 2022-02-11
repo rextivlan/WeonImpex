@@ -45,7 +45,6 @@ const addOrderItems = asyncHandler(async (req, res) => {
     let razorpayOrder;
     try {
       razorpayOrder = await instance.orders.create(options);
-      console.log(razorpayOrder);
     } catch (err) {
       console.log(err);
     }
@@ -90,7 +89,6 @@ const getOrderById = asyncHandler(async (req, res) => {
 // @route   PUT /api/orders/:id/pay
 // @access  Private
 const updateOrderToPaid = asyncHandler(async (req, res) => {
-  console.log(req.body);
   const order = await Order.findById(req.params.id);
 
   try {
