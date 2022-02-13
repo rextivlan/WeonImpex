@@ -91,7 +91,7 @@ const OrderScreen = ({ match, history }) => {
 
     const { razorpay, _id } = order;
     const options = {
-      key: "rzp_test_Zl2MIFiMb6cCD0",
+      key: "rzp_live_zexnOiF9OFY70M",
       amount: razorpay.amount.toString(),
       currency: "INR",
       name: "Weon Impex Pvt Ltd",
